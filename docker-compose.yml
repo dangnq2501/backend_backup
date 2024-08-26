@@ -1,0 +1,71 @@
+
+version: '3'
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: on-failure
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-latest:3306/test?enabledTLSProtocols=TLSv1.2
+      - SPRING_DATASOURCE_USERNAME=sample
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=none
+      - SPRING_JPA_DEFER_DATASOURCE_INITIALIZATION=true
+      - SPRING_SQL_INIT_MODE=always
+#    #      - spring_jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+#
+#    #      - spring.jpa.defer-datasource-initialization=true
+#    #      - spring.sql.init.mode=always
+
+    networks:
+      - backend-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  fastapi:
+    container_name: fastapi
+    build:
+      context: .
+      dockerfile: dockerized-recommend-system/Dockerfile
+    ports:
+      - "8000:8000"
+    networks:
+      - backend-network
+
+  mysql:
+    image: mysql:latest
+    container_name: mysql-latest
+    restart: always                       # always restart
+    environment:
+      MYSQL_DATABASE: 'test'              # name of database
+      MYSQL_USER: 'sample'                # sample is the name of user
+      MYSQL_PASSWORD: 'password'          # password for sample user
+      MYSQL_ROOT_PASSWORD: 'password'     # password for root user
+    ports:
+      - '3300:3306'                       # host port 3306 is mapper to docker port 3306
+    expose:
+      - '3306'
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 20s
+      retries: 5
+    volumes:
+      - mysql-db:/var/lib/mysql
+#      - ./mysql-db/data.sql:/docker-entrypoint-initdb.d/query.sql
+#      - ./mysql-db/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - backend-network
+
+volumes:
+  mysql-db:
+networks:
+  backend-network:
+    driver: bridge
+

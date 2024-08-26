@@ -1,0 +1,4 @@
+pandas
+numpy==1.23.5
+surprise
+joblib
